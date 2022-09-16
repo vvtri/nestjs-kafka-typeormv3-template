@@ -4,11 +4,12 @@ export interface SubscribeInfo {
   handler: () => any;
 }
 
-export const subscribeInfo = new Map<string, SubscribeInfo>();
+export const subscribeInfos = new Map<string, SubscribeInfo>();
 
 export const SubscribeTo = (
   topic: string,
   context: { new (...args: any[]): any },
+  schemaId: number | null = null,
 ) => {
   return function (
     target: any,
@@ -16,7 +17,7 @@ export const SubscribeTo = (
     descriptor: PropertyDescriptor,
   ) {
     console.log('SubscribeTo run');
-    subscribeInfo.set(topic, {
+    subscribeInfos.set(topic, {
       topic,
       handler: descriptor.value,
       context: context,

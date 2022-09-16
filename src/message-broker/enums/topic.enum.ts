@@ -1,0 +1,3 @@
+export enum Topic {
+  USER_REGISTRATION = 'USER_REGISTRATION'
+}

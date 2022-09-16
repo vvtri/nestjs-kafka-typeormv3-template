@@ -1,0 +1,7 @@
+=== Confluent Cloud API key: lsrc-j5nxnm ===
+
+API key:
+W2RLJAFPJQXNBTLU
+
+API secret:
+G3Tq42Hl7JgiHSZne2+TPft08U5T5B0uJsmyEJ6tXDI83oyQZZF9pFaji4xo4SAc

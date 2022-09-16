@@ -1,5 +1,7 @@
+import { SchemaRegistry } from '@kafkajs/confluent-schema-registry';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { info } from 'console';
 import {
   Kafka,
   KafkaConfig,
@@ -10,20 +12,27 @@ import {
 } from 'kafkajs';
 import {
   SubscribeTo,
-  subscribeInfo,
   SubscribeInfo,
 } from '../common/decorators/subcribe-to.decorator';
+import { ConsumerConstructor } from './interfaces/consumer-constructor.interface';
 
 export class Consumer implements OnModuleDestroy, OnModuleInit {
   private consumer: KafkaConsumer;
+  private subscribeInfos: Map<string, SubscribeInfo>;
+  private moduleRef: ModuleRef;
+  private registry: SchemaRegistry;
 
-  constructor(
-    private subscribeInfo: Map<string, SubscribeInfo>,
-    private moduleRef: ModuleRef,
-    kafka: Kafka,
-    consumerConfig: ConsumerConfig,
-  ) {
+  constructor({
+    subscribeInfos,
+    moduleRef,
+    registry,
+    kafka,
+    consumerConfig,
+  }: ConsumerConstructor) {
     this.consumer = kafka.consumer(consumerConfig);
+    this.subscribeInfos = subscribeInfos;
+    this.moduleRef = moduleRef;
+    this.registry = registry;
   }
 
   async onModuleInit() {
@@ -31,16 +40,24 @@ export class Consumer implements OnModuleDestroy, OnModuleInit {
     await this.consumer.connect();
 
     await this.consumer.subscribe({
-      topics: [...this.subscribeInfo.keys()],
+      topics: [...this.subscribeInfos.keys()],
       fromBeginning: false,
     });
 
     await this.consumer.run({
       eachMessage: async (payload: EachMessagePayload) => {
-        const info = subscribeInfo.get(payload.topic);
+        const subscribeInfo = this.subscribeInfos.get(payload.topic);
 
-        const context = this.moduleRef.get(info.context, { strict: false });
-        await subscribeInfo.get(payload.topic).handler.call(context);
+        if (this.registry) {
+          payload.message.value = await this.registry.decode(
+            payload.message.value,
+          );
+        }
+
+        const context = this.moduleRef.get(subscribeInfo.context, {
+          strict: false,
+        });
+        await this.subscribeInfos.get(payload.topic).handler.call(context, payload);
       },
     });
   }
